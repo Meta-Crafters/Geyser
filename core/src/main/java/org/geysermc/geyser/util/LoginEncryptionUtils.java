@@ -170,7 +170,7 @@ public class LoginEncryptionUtils {
             BedrockClientData data = JSON_MAPPER.convertValue(clientDataJson, BedrockClientData.class);
             session.setClientData(data);
 
-            if (EncryptionUtils.canUseEncryption()) {
+            /*if (EncryptionUtils.canUseEncryption()) {
                 try {
                     LoginEncryptionUtils.startEncryptionHandshake(session, identityPublicKey);
                 } catch (Throwable e) {
@@ -183,7 +183,7 @@ public class LoginEncryptionUtils {
                 }
             } else {
                 sendEncryptionFailedMessage(geyser);
-            }
+            }*/
         } catch (Exception ex) {
             session.disconnect("disconnectionScreen.internalError.cantConnect");
             throw new RuntimeException("Unable to complete login", ex);
