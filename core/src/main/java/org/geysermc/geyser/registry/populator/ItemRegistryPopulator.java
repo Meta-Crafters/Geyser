@@ -640,7 +640,7 @@ public class ItemRegistryPopulator {
                                     continue;
                                 }
 
-                                String customItemName = String.format("geysermc:zzzzz%s", pair.value());
+                                String customItemName = String.format("geysermc:%s", pair.value());
                                 entries.put(customItemName, new StartGamePacket.ItemEntry(customItemName, (short) customItemId, false));
 
                                 custom3dItems.put(customBlockId, new BlockPropertyData(customItemName, NbtMap.builder()
