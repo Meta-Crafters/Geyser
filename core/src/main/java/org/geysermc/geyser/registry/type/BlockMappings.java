@@ -47,6 +47,9 @@ public class BlockMappings {
 
     NbtList<NbtMap> bedrockBlockStates;
 
+    Object2IntMap<String> bedrockIdentifierToRuntimeId;
+    Map<String, NbtMap> bedrockIdentifierToNbt;
+
     /**
      * Contains a map of Java blocks to their respective Bedrock block tag, if the Java identifier is different from Bedrock.
      * Required to fix villager trades with these blocks.

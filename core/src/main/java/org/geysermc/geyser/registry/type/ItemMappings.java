@@ -26,6 +26,7 @@
 package org.geysermc.geyser.registry.type;
 
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack;
+import com.nukkitx.protocol.bedrock.data.BlockPropertyData;
 import com.nukkitx.protocol.bedrock.data.inventory.ComponentItemData;
 import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
 import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
@@ -63,6 +64,8 @@ public class ItemMappings {
     List<ItemData> carpets;
 
     @Nullable ComponentItemData furnaceMinecartData;
+    List<ComponentItemData> customItemsData;
+    Int2ObjectMap<BlockPropertyData> custom3dItems;
 
     /**
      * Gets an {@link ItemMapping} from the given {@link ItemStack}.

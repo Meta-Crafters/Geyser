@@ -44,6 +44,44 @@ import java.util.stream.Stream;
 public class FileUtils {
 
     /**
+     * Writes the given data to the specified file on disk
+     *
+     * @param file File to write to
+     * @param data Data to write to the file
+     * @throws IOException if the file failed to write
+     */
+    public static void writeFile(File file, String data) throws IOException {
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+
+        try (FileWriter writer = new FileWriter(file)) {
+            try (BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+                bufferedWriter.write(data);
+                bufferedWriter.flush();
+            }
+        }
+    }
+
+    /**
+     * Appends the given data to the specified file on disk
+     *
+     * @param file File to write to
+     * @param data Data to write to the file
+     * @throws IOException if the file failed to write
+     */
+    public static void appendFile(File file, String data) throws IOException {
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+
+        try (FileWriter writer = new FileWriter(file, true)) {
+            writer.write(data);
+            writer.flush();
+        }
+    }
+
+    /**
      * Load the given YAML file into the given class
      *
      * @param src File to load
@@ -169,6 +207,9 @@ public class FileUtils {
      * @return The byte array of the file
      */
     public static byte[] readAllBytes(File file) {
+        if (!file.exists())
+            return new byte[]{};
+
         try (InputStream stream = new FileInputStream(file)) {
             return stream.readAllBytes();
         } catch (IOException e) {

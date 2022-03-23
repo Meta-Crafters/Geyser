@@ -142,6 +142,12 @@ public abstract class GeyserJacksonConfiguration implements GeyserConfiguration 
     @JsonProperty("xbox-achievements-enabled")
     private boolean xboxAchievementsEnabled = false;
 
+    @JsonProperty("convert-resource-pack")
+    private boolean convertResourcePack = true;
+
+    @JsonProperty("debug-resource-pack-conversion")
+    private boolean debugResourcePack = false;
+
     private MetricsInfo metrics = new MetricsInfo();
 
     @JsonProperty("pending-authentication-timeout")

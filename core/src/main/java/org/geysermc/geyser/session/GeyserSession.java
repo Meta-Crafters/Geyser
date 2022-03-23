@@ -35,6 +35,7 @@ import com.github.steveice10.mc.protocol.MinecraftConstants;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.github.steveice10.mc.protocol.data.ProtocolState;
 import com.github.steveice10.mc.protocol.data.UnexpectedEncryptionException;
+import com.github.steveice10.mc.protocol.data.game.ResourcePackStatus;
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.Pose;
 import com.github.steveice10.mc.protocol.data.game.entity.object.Direction;
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode;
@@ -46,7 +47,9 @@ import com.github.steveice10.mc.protocol.data.game.setting.SkinPart;
 import com.github.steveice10.mc.protocol.data.game.statistic.CustomStatistic;
 import com.github.steveice10.mc.protocol.data.game.statistic.Statistic;
 import com.github.steveice10.mc.protocol.packet.handshake.serverbound.ClientIntentionPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.clientbound.ClientboundResourcePackPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundClientInformationPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundResourcePackPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerPosPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerAbilitiesPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
@@ -80,6 +83,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.checkerframework.common.value.qual.IntRange;
 import org.geysermc.common.PlatformType;
+import org.geysermc.connector.GeyserConnector;
 import org.geysermc.cumulus.Form;
 import org.geysermc.cumulus.util.FormBuilder;
 import org.geysermc.floodgate.crypto.FloodgateCipher;
@@ -101,6 +105,7 @@ import org.geysermc.geyser.inventory.recipe.GeyserRecipe;
 import org.geysermc.geyser.level.WorldManager;
 import org.geysermc.geyser.level.physics.CollisionManager;
 import org.geysermc.geyser.network.netty.LocalSession;
+import org.geysermc.geyser.pack.ResourcePack;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.registry.type.BlockMappings;
 import org.geysermc.geyser.registry.type.ItemMapping;
@@ -115,11 +120,14 @@ import org.geysermc.geyser.text.MinecraftLocale;
 import org.geysermc.geyser.translator.inventory.InventoryTranslator;
 import org.geysermc.geyser.translator.text.MessageTranslator;
 import org.geysermc.geyser.util.*;
+import xyz.redsmarty.resourcepackconverter.utils.InvalidResourcePackException;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -582,9 +590,18 @@ public class GeyserSession implements GeyserConnection, CommandSender {
         // Set the hardcoded shield ID to the ID we just defined in StartGamePacket
         upstream.getSession().getHardcodedBlockingId().set(this.itemMappings.getStoredItems().shield().getBedrockId());
 
-        if (this.itemMappings.getFurnaceMinecartData() != null) {
+        if (this.itemMappings.getFurnaceMinecartData() != null || GeyserImpl.getInstance().getConfig().isConvertResourcePack()) {
             ItemComponentPacket componentPacket = new ItemComponentPacket();
             componentPacket.getItems().add(this.itemMappings.getFurnaceMinecartData());
+
+            if (this.itemMappings.getFurnaceMinecartData() != null) {
+                componentPacket.getItems().add(this.itemMappings.getFurnaceMinecartData());
+            }
+
+            if (GeyserImpl.getInstance().getConfig().isConvertResourcePack()) {
+                componentPacket.getItems().addAll(this.itemMappings.getCustomItemsData());
+            }
+
             upstream.sendPacket(componentPacket);
         }
 
@@ -987,6 +1004,21 @@ public class GeyserSession implements GeyserConnection, CommandSender {
 
             @Override
             public void packetReceived(Session session, Packet packet) {
+                if (packet instanceof ClientboundResourcePackPacket resourcePackSendPacket) {
+                    try {
+                        ResourcePack.convert(new URL(((ClientboundResourcePackPacket) packet).getUrl()).openStream(), resourcePackSendPacket.getHash());
+                        GeyserImpl.getInstance().getLogger().info(GeyserLocale.getLocaleStringLog("geyser.resource_pack.successfully_converted"));
+                        ServerboundResourcePackPacket statusPacket = new ServerboundResourcePackPacket(ResourcePackStatus.SUCCESSFULLY_LOADED);
+                        downstream.send(statusPacket);
+                    } catch (IOException exception) {
+                        GeyserImpl.getInstance().getLogger().warning(GeyserLocale.getLocaleStringLog("geyser.resource_pack.invalid_url"));
+                    } catch (InvalidResourcePackException exception) {
+                        GeyserImpl.getInstance().getLogger().warning(GeyserLocale.getLocaleStringLog("geyser.resource_pack.conversion_failed", exception.getReason()));
+                        exception.printStackTrace();
+                    }
+                    return;
+                }
+
                 Registries.JAVA_PACKET_TRANSLATORS.translate(packet.getClass(), packet, GeyserSession.this);
             }
 
@@ -1421,6 +1453,7 @@ public class GeyserSession implements GeyserConnection, CommandSender {
         startGamePacket.setEnchantmentSeed(0);
         startGamePacket.setMultiplayerCorrelationId("");
         startGamePacket.setItemEntries(this.itemMappings.getItemEntries());
+        startGamePacket.setItemEntries(this.itemMappings.getItemEntries());
         startGamePacket.setVanillaVersion("*");
         startGamePacket.setInventoriesServerAuthoritative(true);
         startGamePacket.setServerEngine(""); // Do we want to fill this in?
@@ -1431,8 +1464,16 @@ public class GeyserSession implements GeyserConnection, CommandSender {
         settings.setServerAuthoritativeBlockBreaking(false);
         startGamePacket.setPlayerMovementSettings(settings);
 
+        startGamePacket.getExperiments().add(new ExperimentData("data_driven_items", true));
+
         if (upstream.getProtocolVersion() <= Bedrock_v471.V471_CODEC.getProtocolVersion()) {
             startGamePacket.getExperiments().add(new ExperimentData("caves_and_cliffs", true));
+        }
+
+        if (GeyserImpl.getInstance().getConfig().isConvertResourcePack()) {
+            for (BlockPropertyData data : this.itemMappings.getCustom3dItems().values()) {
+                startGamePacket.getBlockProperties().add(data);
+            }
         }
 
         upstream.sendPacket(startGamePacket);

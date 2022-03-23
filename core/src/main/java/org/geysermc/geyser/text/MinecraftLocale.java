@@ -319,7 +319,7 @@ public class MinecraftLocale {
      * @param b Byte array to convert
      * @return The hex representation of the given byte array
      */
-    private static String byteArrayToHexString(byte[] b) {
+    public static String byteArrayToHexString(byte[] b) {
         StringBuilder result = new StringBuilder();
         for (byte value : b) {
             result.append(Integer.toString((value & 0xff) + 0x100, 16).substring(1));

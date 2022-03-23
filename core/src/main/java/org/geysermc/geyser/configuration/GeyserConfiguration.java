@@ -99,6 +99,10 @@ public interface GeyserConfiguration {
 
     int getCacheImages();
 
+    boolean isConvertResourcePack();
+
+    boolean isDebugResourcePack();
+
     boolean isAllowCustomSkulls();
 
     IMetricsInfo getMetrics();

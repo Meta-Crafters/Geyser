@@ -157,6 +157,9 @@ public class GeyserImpl implements GeyserApi {
         logger.info("");
         logger.info("******************************************");
 
+        /* Load packs, they have to be loaded before registries because they convert java resource packs */
+        ResourcePack.loadPacks();
+
         /* Initialize translators and registries */
         BlockRegistries.init();
         Registries.init();
@@ -208,8 +211,6 @@ public class GeyserImpl implements GeyserApi {
         ScoreboardUpdater.init();
 
         SkinProvider.registerCacheImageTask(this);
-
-        ResourcePack.loadPacks();
 
         if (platformType != PlatformType.STANDALONE && config.getRemote().getAddress().equals("auto")) {
             // Set the remote address to localhost since that is where we are always connecting
@@ -503,6 +504,8 @@ public class GeyserImpl implements GeyserApi {
             sessionManager.disconnectAll("geyser.core.shutdown.kick.message");
             bootstrap.getGeyserLogger().info(GeyserLocale.getLocaleStringLog("geyser.core.shutdown.kick.done"));
         }
+
+        ResourcePack.saveCache();
 
         scheduledThread.shutdown();
         bedrockServer.close();
